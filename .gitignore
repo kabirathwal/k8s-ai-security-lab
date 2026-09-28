@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+
+# Claude Code: personal local settings (a shared .claude/settings.json can still be committed)
+.claude/settings.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# Secrets and local config (use FAKE-* values in committed files)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Kubernetes: cluster credentials exported locally
+kubeconfig
+*.kubeconfig
+
+# Editors
+.vscode/
+.idea/
