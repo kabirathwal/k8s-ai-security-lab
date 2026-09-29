@@ -1,0 +1,36 @@
+# kind cluster for k8s-ai-security-lab.
+# 1 control-plane + 2 workers, default CNI disabled so Calico can be installed.
+# Create with: kind create cluster --config cluster/kind-config.yaml
+
+# kind: which kind of object this file describes. For kind, it's always "Cluster".
+kind: Cluster
+# apiVersion: the schema version of kind's config format (not the Kubernetes version).
+apiVersion: kind.x-k8s.io/v1alpha4
+# name: the cluster name. kind names the Docker containers <name>-control-plane,
+# <name>-worker, ... and the kubectl context kind-<name>. `--name` overrides it.
+name: ai-lab
+
+networking:
+  # disableDefaultCNI: don't install kindnet, kind's built-in network plugin.
+  # Nodes stay NotReady and pods stay Pending until a CNI (Calico) is installed.
+  # Why: kindnet doesn't enforce NetworkPolicy, and Calico does.
+  disableDefaultCNI: true
+  # podSubnet: the IP range pods get addresses from. Calico's IP pool must use the
+  # same range (see cidr in cluster/custom-resources.yaml). 10.244.0.0/16 avoids clashing with
+  # home networks, which often use 192.168.x.x.
+  podSubnet: "10.244.0.0/16"
+  # serviceSubnet: the IP range for Service ClusterIPs. It must not overlap podSubnet.
+  serviceSubnet: "10.96.0.0/12"
+
+# nodes: one entry per node. kind runs each node as a Docker container.
+nodes:
+  # control-plane: runs the API server, scheduler, controller-manager, and etcd.
+  - role: control-plane
+    # image: the Kubernetes version for this node, pinned by digest so every
+    # rebuild is identical. It comes from the kind v0.33.0 release notes.
+    image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+  # worker: runs the app workloads (Ollama, chat-api).
+  - role: worker
+    image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+  - role: worker
+    image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5

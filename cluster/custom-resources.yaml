@@ -1,0 +1,64 @@
+# Calico configuration for k8s-ai-security-lab.
+# These are custom resources read by the tigera-operator, which then installs and
+# configures Calico. Used with operator quay.io/tigera/operator:v1.42.6.
+# Based on Calico's upstream custom-resources.yaml, with the pod CIDR changed to match kind.
+#
+# Apply order:
+#   1. kind create cluster --config cluster/kind-config.yaml
+#   2. install the tigera-operator manifest (matching the version above)
+#   3. kubectl create -f cluster/custom-resources.yaml
+
+# This section includes base Calico installation configuration.
+# For more information, see: https://docs.tigera.io/calico/latest/reference/installation/api#operator.tigera.io/v1.Installation
+apiVersion: operator.tigera.io/v1
+# Installation: the main object; tells the operator how to set up Calico networking.
+kind: Installation
+metadata:
+  # The operator only acts on the object named "default".
+  name: default
+spec:
+  # Configures Calico networking.
+  calicoNetwork:
+    # ipPools: the ranges Calico hands out pod IPs from.
+    ipPools:
+      - name: default-ipv4-ippool
+        # blockSize: each node claims /26 blocks (64 IPs) from the pool, so a node's
+        # pods share a prefix and routing stays simple.
+        blockSize: 26
+        # cidr: changed from Calico's default 192.168.0.0/16. It must equal podSubnet
+        # in cluster/kind-config.yaml, or pods get IPs Kubernetes doesn't expect.
+        cidr: 10.244.0.0/16
+        # encapsulation: wrap pod traffic in VXLAN only when it crosses subnets.
+        # All kind nodes share one Docker network, so traffic is mostly routed directly.
+        encapsulation: VXLANCrossSubnet
+        # natOutgoing: rewrite pod source IPs to the node's IP for traffic leaving
+        # the cluster (e.g. pulling models from the internet).
+        natOutgoing: Enabled
+        # nodeSelector: all() means every node uses this pool.
+        nodeSelector: all()
+
+---
+# This section configures the Calico API server.
+# It lets kubectl manage Calico-specific resources (e.g. projectcalico.org NetworkPolicies).
+# For more information, see: https://docs.tigera.io/calico/latest/reference/installation/api#operator.tigera.io/v1.APIServer
+apiVersion: operator.tigera.io/v1
+kind: APIServer
+metadata:
+  name: default
+spec: {}
+
+---
+# Configures the Calico Goldmane flow aggregator.
+# Collects network flow logs (who talked to whom, allowed or denied) from each node.
+apiVersion: operator.tigera.io/v1
+kind: Goldmane
+metadata:
+  name: default
+
+---
+# Configures the Calico Whisker observability UI.
+# A web UI showing Goldmane's flow logs; handy for watching NetworkPolicy allow/deny.
+apiVersion: operator.tigera.io/v1
+kind: Whisker
+metadata:
+  name: default
