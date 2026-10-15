@@ -1,0 +1,12 @@
+# Non-secret settings for chat-api, loaded as environment variables (see envFrom).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chat-api-config
+data:
+  # Where Ollama is: the Service name works because both are in the same namespace.
+  OLLAMA_URL: "http://ollama:11434"
+  # Must match the model the pull Job downloads.
+  MODEL_NAME: "qwen2.5:0.5b"
+  # /debug/env stays off unless an overlay turns it on.
+  ENABLE_DEBUG: "false"

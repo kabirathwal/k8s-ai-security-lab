@@ -1,0 +1,10 @@
+# Files Docker leaves out of the build context (so they never end up in the image).
+tests/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+.env
+.env.*

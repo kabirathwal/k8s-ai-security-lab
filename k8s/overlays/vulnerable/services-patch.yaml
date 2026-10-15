@@ -1,0 +1,17 @@
+# Patches for both base Services. NodePort opens a port (30000-32767) on every node
+# that forwards to the Service. The port number is assigned automatically.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+spec:
+  # VULN: exposes the Ollama API, which has no authentication, outside the cluster; anyone can pull, delete or run models and bypass chat-api.
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-api
+spec:
+  # VULN: exposes chat-api (including /debug/env) on every node's IP, not just inside the cluster.
+  type: NodePort

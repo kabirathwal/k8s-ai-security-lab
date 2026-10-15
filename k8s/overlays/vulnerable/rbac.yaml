@@ -1,0 +1,33 @@
+# RBAC for chat-api's ServiceAccount.
+# ClusterRole/ClusterRoleBinding are cluster-scoped: they apply in every namespace, and the
+# overlay's `namespace:` setting doesn't change them.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: chat-api-vuln
+rules:
+  # VULN: read every Secret in every namespace; a stolen token exposes all credentials in the cluster.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  # VULN: create pods in any namespace; with a permissive namespace an attacker can start a privileged pod and take the node.
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: chat-api-vuln
+# roleRef: which role is granted. It can't be changed after creation.
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: chat-api-vuln
+# subjects: who gets it.
+subjects:
+  # VULN: grants the cluster-wide role above to the chat-api app's identity.
+  - kind: ServiceAccount
+    name: chat-api
+    # Written out explicitly: a ServiceAccount is identified by namespace + name.
+    namespace: ai-lab-vuln

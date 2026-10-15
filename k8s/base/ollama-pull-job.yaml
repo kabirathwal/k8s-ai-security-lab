@@ -1,0 +1,25 @@
+# One-off Job: tells the Ollama server to download the model onto its PVC.
+# It runs the ollama CLI as a client against the Service, so the model lands in the server's volume.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-pull-model
+spec:
+  # backoffLimit: retries before the Job counts as failed. The first tries can fail while
+  # Ollama is still starting, so allow plenty.
+  backoffLimit: 10
+  # Delete the finished Job (and its pod) after 1 hour to keep `kubectl get` tidy.
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      # OnFailure: restart the container if the pull fails; stop once it succeeds.
+      restartPolicy: OnFailure
+      containers:
+        - name: pull
+          image: ollama/ollama:0.40.4
+          env:
+            # Point the CLI at the Ollama Service instead of a local server.
+            - name: OLLAMA_HOST
+              value: "http://ollama:11434"
+          command: ["ollama"]
+          args: ["pull", "qwen2.5:0.5b"]

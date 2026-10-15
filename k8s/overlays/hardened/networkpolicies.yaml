@@ -1,0 +1,115 @@
+# NetworkPolicies for ai-lab-hardened. These control EGRESS (traffic leaving pods).
+# Model: deny all egress by default, then allow only what's needed. Ingress is left at the
+# namespace default (allowed) so kubectl port-forward and kubelet health probes keep working.
+# A NetworkPolicy only takes effect where a CNI enforces it; this cluster uses Calico.
+
+# ---------------------------------------------------------------------------
+# 1. Default-deny all egress for every pod in the namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-egress
+spec:
+  # Empty podSelector = every pod in the namespace.
+  podSelector: {}
+  # Naming Egress with no egress rules below means "deny all egress".
+  # CONTROL: nothing leaves a pod unless a policy below allows it; blocks the baseline's
+  # token-driven reach into ai-lab-decoy (#16, and the #2/#3 attack path).
+  policyTypes:
+    - Egress
+
+---
+# 2. Allow DNS for all pods (needed to resolve Service names like "ollama").
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # CONTROL: egress to the cluster DNS pods only, on port 53.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+---
+# 3. Allow chat-api -> ollama only.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-chat-api-to-ollama
+spec:
+  # This policy applies to chat-api pods...
+  podSelector:
+    matchLabels:
+      app: chat-api
+  policyTypes:
+    - Egress
+  egress:
+    # CONTROL: chat-api may reach only the ollama pods, only on 11434 (#16).
+    - to:
+        - podSelector:
+            matchLabels:
+              app: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+
+---
+# 4. Allow ollama -> public internet on 443, for `ollama pull` to fetch the model from the registry.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ollama-registry-egress
+spec:
+  podSelector:
+    matchLabels:
+      app: ollama
+  policyTypes:
+    - Egress
+  egress:
+    # CONTROL: narrow exception for model download. The except blocks carve out the cluster pod
+    # and Service CIDRs, so this rule can reach the internet but NOT ai-lab-decoy or any in-cluster
+    # target (#16). The pod/service CIDRs match cluster/kind-config.yaml.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.244.0.0/16   # pod network (includes ai-lab-decoy pods)
+              - 10.96.0.0/12    # Service ClusterIPs
+      ports:
+        - protocol: TCP
+          port: 443
+
+---
+# 5. Allow the pull Job -> ollama Service.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-pull-job-to-ollama
+spec:
+  podSelector:
+    matchLabels:
+      app: ollama-pull
+  policyTypes:
+    - Egress
+  egress:
+    # CONTROL: the Job that triggers the model pull may reach only the ollama pods, only on 11434.
+    - to:
+        - podSelector:
+            matchLabels:
+              app: ollama
+      ports:
+        - protocol: TCP
+          port: 11434

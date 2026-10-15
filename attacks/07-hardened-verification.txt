@@ -1,0 +1,32 @@
+# No ServiceAccount token mounted (closes finding #1)
+$ kubectl -n ai-lab-hardened exec -it chat-api-6dcbb6b6cd-72mnw -- ls /var/run/secrets/kubernetes.io/serviceaccount/
+ls: cannot access '/var/run/secrets/kubernetes.io/serviceaccount/': No such file or directory
+command terminated with exit code 2
+
+# /debug/env no longer leaks (closes finding #4)
+$ curl -s localhost:8081/debug/env
+{"detail":"Not Found"}
+
+# App still functional after hardening
+$ curl -s localhost:8081/healthz
+{"status":"ok"}
+$ curl -s -X POST localhost:8081/chat -H "Content-Type: application/json" -d '{"message":"hello"}'
+{"reply":"Hello! How can I assist you today?"}
+
+# Lateral movement to decoy namespace blocked (closes finding #2, #3, #16 — compare to vulnerable overlay's 200 OK / 201 Created)
+$ kubectl -n ai-lab-hardened exec -it chat-api-6dcbb6b6cd-72mnw -- sh
+$ python3 -c "
+import httpx
+try:
+    r = httpx.get('http://postgres.ai-lab-decoy.svc:80', timeout=5)
+    print(r.status_code)
+except Exception as e:
+    print('BLOCKED:', e)
+"
+BLOCKED: timed out
+
+# Neither hardened SA can create pods anywhere (direct RBAC proof, finding #3)
+$ kubectl auth can-i create pods --as=system:serviceaccount:ai-lab-hardened:chat-api -n ai-lab-decoy
+no
+$ kubectl auth can-i create pods --as=system:serviceaccount:ai-lab-hardened:ollama -n ai-lab-decoy
+no

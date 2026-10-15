@@ -1,0 +1,48 @@
+# Patch for the base chat-api Deployment. Containers are matched by name.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-api
+spec:
+  template:
+    spec:
+      # CONTROL: no API token mounted (#1).
+      automountServiceAccountToken: false
+      # Pod-level security settings, inherited by all containers.
+      securityContext:
+        runAsNonRoot: true          # CONTROL: refuse to start as root (#7)
+        runAsUser: 10001            # matches the image's non-root user
+        runAsGroup: 10001
+        fsGroup: 10001              # makes mounted volumes group-writable to the non-root user
+        seccompProfile:
+          type: RuntimeDefault      # CONTROL: apply the runtime's default syscall filter (#10)
+      containers:
+        - name: chat-api
+          # envFrom is a list with no merge key, so a strategic-merge patch REPLACES it entirely:
+          # both sources must be listed here or the ConfigMap wiring from base would be dropped.
+          envFrom:
+            - configMapRef:
+                name: chat-api-config      # OLLAMA_URL, MODEL_NAME, ENABLE_DEBUG=false (from base)
+            - secretRef:
+                name: chat-api-secret      # CONTROL: API_KEY from a Secret (#12)
+          # CONTROL: bound CPU/memory so a busy or compromised pod can't starve the node (#13).
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false   # CONTROL: block setuid-style escalation (#9)
+            readOnlyRootFilesystem: true      # CONTROL: immutable root filesystem (#8)
+            capabilities:
+              drop: ["ALL"]                   # CONTROL: drop all Linux capabilities (#11)
+          # With a read-only root FS the app still needs a writable /tmp.
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        # emptyDir: scratch space that lives and dies with the pod.
+        - name: tmp
+          emptyDir: {}

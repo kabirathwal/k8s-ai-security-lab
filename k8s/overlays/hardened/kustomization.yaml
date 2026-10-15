@@ -1,0 +1,33 @@
+# Hardened overlay: the base app deployed SECURELY, closing every finding in docs/findings.md.
+# Each control is marked `# CONTROL:` with the finding number (#N) it mitigates.
+# Apply with: kubectl apply -k k8s/overlays/hardened
+#
+# Findings-to-control map:
+#   #1  token/RBAC          -> no ClusterRole + automountServiceAccountToken: false on both SAs/pods
+#   #2,#3,#5,#6 cluster RBAC -> no ClusterRole/ClusterRoleBinding at all (workload needs no API access)
+#   #4,#12 key leak/ConfigMap-> API_KEY in a Secret; ENABLE_DEBUG stays false (so /debug/env is 404)
+#   #7-#11 securityContext   -> restricted securityContext on every container
+#   #13 no limits            -> resource requests/limits on both workloads
+#   #14 NodePort             -> base Services are ClusterIP and left unpatched
+#   #15 PSA privileged       -> namespace enforces Pod Security "restricted"
+#   #16 no NetworkPolicy     -> default-deny egress + scoped allows; egress to ai-lab-decoy blocked
+#   #17,#18 image CVEs       -> NOT closed by an overlay; needs a base-image rebuild + dep bumps (later)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Put every namespaced object into ai-lab-hardened (separate from ai-lab-vuln so both can run at once).
+namespace: ai-lab-hardened
+
+resources:
+  - ../../base
+  - namespace.yaml
+  - ollama-serviceaccount.yaml
+  - chat-api-secret.yaml
+  - networkpolicies.yaml
+
+# Strategic-merge patches onto base objects. Each file names the object it patches.
+patches:
+  - path: chat-api-sa-patch.yaml
+  - path: chat-api-deployment-patch.yaml
+  - path: ollama-deployment-patch.yaml
+  - path: ollama-pull-job-patch.yaml

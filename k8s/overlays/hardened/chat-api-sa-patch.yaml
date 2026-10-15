@@ -1,0 +1,7 @@
+# Patch for the base chat-api ServiceAccount (matched by kind + name).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chat-api
+# CONTROL: don't mount an API token into chat-api pods (#1). The app needs no Kubernetes API access.
+automountServiceAccountToken: false

@@ -1,0 +1,5 @@
+# A separate namespace that looks like a database team's, to show cross-namespace theft.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-lab-decoy

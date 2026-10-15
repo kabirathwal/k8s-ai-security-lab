@@ -1,0 +1,14 @@
+# Patch for the base Ollama Deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+spec:
+  template:
+    spec:
+      containers:
+        - name: ollama
+          # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+          securityContext:
+            # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+            runAsUser: 0

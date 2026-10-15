@@ -1,0 +1,10 @@
+# Patch for the base chat-api ConfigMap (matched by kind + name).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chat-api-config
+data:
+  # VULN: turns on /debug/env, which returns every environment variable (including API_KEY) to anyone.
+  ENABLE_DEBUG: "true"
+  # VULN: credential in a plain ConfigMap instead of a Secret, readable by anyone allowed to read ConfigMaps.
+  API_KEY: "FAKE-API-KEY"

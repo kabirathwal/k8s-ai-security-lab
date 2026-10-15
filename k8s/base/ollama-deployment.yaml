@@ -1,0 +1,47 @@
+# Ollama: the server that runs the LLM and exposes an HTTP API on port 11434.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+spec:
+  # replicas: how many pods to run. One is enough; the model volume can't be shared anyway.
+  replicas: 1
+  # Recreate: stop the old pod before starting a new one. The default (RollingUpdate) starts
+  # the new pod first, which would get stuck because the RWO volume is still attached.
+  strategy:
+    type: Recreate
+  # selector: which pods this Deployment manages. Must match the pod template labels.
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      containers:
+        - name: ollama
+          # Pinned version, never :latest.
+          image: ollama/ollama:0.40.4
+          env:
+            # Listen on all interfaces so other pods can reach it through the Service.
+            - name: OLLAMA_HOST
+              value: "0.0.0.0:11434"
+          ports:
+            - name: http
+              containerPort: 11434
+          # Mount the PVC where Ollama keeps its models.
+          volumeMounts:
+            - name: models
+              mountPath: /root/.ollama
+          # readinessProbe: the Service only sends traffic once this succeeds.
+          readinessProbe:
+            httpGet:
+              path: /api/version
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: ollama-models

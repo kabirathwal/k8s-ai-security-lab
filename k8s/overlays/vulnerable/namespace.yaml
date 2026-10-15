@@ -1,0 +1,9 @@
+# Namespace for the vulnerable deployment.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-lab-vuln
+  labels:
+    # Pod Security Admission (PSA): built-in admission check that rejects risky pod specs.
+    # VULN: `privileged` level means no checks at all, so root, privileged and hostPath pods are all accepted.
+    pod-security.kubernetes.io/enforce: privileged

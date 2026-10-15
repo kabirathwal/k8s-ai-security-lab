@@ -1,0 +1,26 @@
+# Vulnerable overlay: the base app deployed INSECURELY ON PURPOSE, as the attack target.
+# Every weakness is marked `# VULN:`. Do not copy these settings into real clusters.
+# Apply with: kubectl apply -k k8s/overlays/vulnerable
+#
+# Weaknesses that come from things that are MISSING (so there's no line to mark):
+# VULN: no NetworkPolicy, so any pod in any namespace can reach chat-api and Ollama, and they can reach anything.
+# VULN: no resource requests/limits on any pod, so one busy pod can starve the whole node.
+# VULN: images are referenced by tag only, with no digest pinning or signature check, so a re-pushed tag is trusted.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# namespace: put every namespaced object (from base and here) into ai-lab-vuln.
+# Cluster-scoped objects (Namespace, ClusterRole, ClusterRoleBinding) are left as they are.
+namespace: ai-lab-vuln
+
+resources:
+  - ../../base
+  - namespace.yaml
+  - rbac.yaml
+
+# patches: strategic-merge patches that change base objects. Each file names the object it patches.
+patches:
+  - path: chat-api-config-patch.yaml
+  - path: chat-api-deployment-patch.yaml
+  - path: ollama-deployment-patch.yaml
+  - path: services-patch.yaml

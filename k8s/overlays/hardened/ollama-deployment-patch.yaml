@@ -1,0 +1,57 @@
+# Patch for the base Ollama Deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+spec:
+  template:
+    spec:
+      # Use the dedicated ollama ServiceAccount, with no token mounted.
+      serviceAccountName: ollama
+      automountServiceAccountToken: false   # CONTROL: no API token in ollama pods (#1)
+      securityContext:
+        runAsNonRoot: true          # CONTROL: ollama no longer runs as root (#7)
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001              # so the model PVC and emptyDirs are writable to the non-root group
+        seccompProfile:
+          type: RuntimeDefault      # CONTROL: default syscall filter (#10)
+      containers:
+        - name: ollama
+          env:
+            # Base sets OLLAMA_HOST; add writable locations because root FS is read-only and
+            # the non-root user can't write the default /root/.ollama.
+            - name: HOME
+              value: /home/ollama
+            - name: OLLAMA_MODELS
+              value: /models
+          # CONTROL: bound CPU/memory; caps the LLM prompt-flood DoS from the baseline (#13).
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 2Gi
+          securityContext:
+            allowPrivilegeEscalation: false   # CONTROL: no privilege escalation (#9)
+            readOnlyRootFilesystem: true      # CONTROL: immutable root filesystem (#8)
+            capabilities:
+              drop: ["ALL"]                   # CONTROL: drop all capabilities (#11)
+          volumeMounts:
+            # Remount the base PVC (base mounts it at /root/.ollama) to the path OLLAMA_MODELS points at.
+            - name: models
+              mountPath: /models
+            - name: home
+              mountPath: /home/ollama
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        # Keep the base PVC (same claim), just mounted at /models above.
+        - name: models
+          persistentVolumeClaim:
+            claimName: ollama-models
+        - name: home
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}

@@ -1,0 +1,44 @@
+# chat-api: the FastAPI app users talk to. It forwards messages to Ollama.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chat-api
+  template:
+    metadata:
+      labels:
+        app: chat-api
+    spec:
+      # Run as the chat-api ServiceAccount (permissions come from the overlay's RBAC).
+      serviceAccountName: chat-api
+      containers:
+        - name: chat-api
+          # Built locally and loaded with `kind load docker-image`. Pinned tag.
+          image: chat-api:0.1.0
+          # IfNotPresent: use the image already on the node; don't try to pull from Docker Hub
+          # (it doesn't exist there).
+          imagePullPolicy: IfNotPresent
+          # envFrom: turn every key in the ConfigMap into an environment variable.
+          envFrom:
+            - configMapRef:
+                name: chat-api-config
+          ports:
+            - name: http
+              containerPort: 8000
+          # readinessProbe: only receive traffic when /healthz answers.
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          # livenessProbe: restart the container if /healthz stops answering.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20

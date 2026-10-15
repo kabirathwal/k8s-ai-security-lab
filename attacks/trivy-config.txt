@@ -1,0 +1,697 @@
+
+Report Summary
+
+┌────────────────────────────────┬────────────┬───────────────────┐
+│             Target             │    Type    │ Misconfigurations │
+├────────────────────────────────┼────────────┼───────────────────┤
+│ chat-api-config-patch.yaml     │ kubernetes │         1         │
+├────────────────────────────────┼────────────┼───────────────────┤
+│ chat-api-deployment-patch.yaml │ kubernetes │        17         │
+├────────────────────────────────┼────────────┼───────────────────┤
+│ namespace.yaml                 │ kubernetes │         0         │
+├────────────────────────────────┼────────────┼───────────────────┤
+│ ollama-deployment-patch.yaml   │ kubernetes │        17         │
+├────────────────────────────────┼────────────┼───────────────────┤
+│ rbac.yaml                      │ kubernetes │         2         │
+├────────────────────────────────┼────────────┼───────────────────┤
+│ services-patch.yaml            │ kubernetes │         0         │
+└────────────────────────────────┴────────────┴───────────────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
+
+chat-api-config-patch.yaml (kubernetes)
+=======================================
+Tests: 115 (SUCCESSES: 114, FAILURES: 1)
+Failures: 1 (UNKNOWN: 0, LOW: 0, MEDIUM: 1, HIGH: 0, CRITICAL: 0)
+
+KSV-01010 (MEDIUM): ConfigMap 'chat-api-config' in 'default' namespace stores sensitive contents in key(s) or value(s) '{"API_KEY"}'
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Storing sensitive content such as usernames and email addresses in configMaps is unsafe
+
+See https://avd.aquasec.com/misconfig/ksv-01010
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+chat-api-deployment-patch.yaml (kubernetes)
+===========================================
+Tests: 115 (SUCCESSES: 98, FAILURES: 17)
+Failures: 17 (UNKNOWN: 0, LOW: 12, MEDIUM: 3, HIGH: 2, CRITICAL: 0)
+
+KSV-0001 (MEDIUM): Container 'chat-api' of Deployment 'chat-api' should set 'securityContext.allowPrivilegeEscalation' to false
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+A program inside the container can elevate its own privileges and run as root, which might give the program control over the container and node.
+
+See https://avd.aquasec.com/misconfig/ksv-0001
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:12-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0003 (LOW): Container 'chat-api' of Deployment 'chat-api' should add 'ALL' to 'securityContext.capabilities.drop'
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+The container should drop all default capabilities and add only those that are needed for its execution.
+
+See https://avd.aquasec.com/misconfig/ksv-0003
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:12-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0004 (LOW): Container 'chat-api' of 'deployment' 'chat-api' in 'default' namespace should set securityContext.capabilities.drop
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Security best practices require containers to run with minimal required capabilities.
+
+See https://avd.aquasec.com/misconfig/ksv-0004
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:12-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0011 (LOW): Container 'chat-api' of Deployment 'chat-api' should set 'resources.limits.cpu'
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Enforcing CPU limits prevents DoS via resource exhaustion.
+
+See https://avd.aquasec.com/misconfig/ksv-0011
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:12-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0012 (MEDIUM): Container 'chat-api' of Deployment 'chat-api' should set 'securityContext.runAsNonRoot' to true
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Force the running image to run as a non-root user to ensure least privileges.
+
+See https://avd.aquasec.com/misconfig/ksv-0012
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:12-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0014 (HIGH): Container 'chat-api' of Deployment 'chat-api' should set 'securityContext.readOnlyRootFilesystem' to true
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+An immutable root file system prevents applications from writing to their local disk. This can limit intrusions, as attackers will not be able to tamper with the file system or write foreign executables to disk.
+
+See https://avd.aquasec.com/misconfig/ksv-0014
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:12-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0015 (LOW): Container 'chat-api' of Deployment 'chat-api' should set 'resources.requests.cpu'
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+When containers have resource requests specified, the scheduler can make better decisions about which nodes to place pods on, and how to deal with resource contention.
+
+See https://avd.aquasec.com/misconfig/ksv-0015
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:12-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0016 (LOW): Container 'chat-api' of Deployment 'chat-api' should set 'resources.requests.memory'
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+When containers have memory requests specified, the scheduler can make better decisions about which nodes to place pods on, and how to deal with resource contention.
+
+See https://avd.aquasec.com/misconfig/ksv-0016
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:12-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0018 (LOW): Container 'chat-api' of Deployment 'chat-api' should set 'resources.limits.memory'
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Enforcing memory limits prevents DoS via resource exhaustion.
+
+See https://avd.aquasec.com/misconfig/ksv-0018
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:12-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0020 (LOW): Container 'chat-api' of Deployment 'chat-api' should set 'securityContext.runAsUser' > 10000
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Force the container to run with user ID > 10000 to avoid conflicts with the host’s user table.
+
+See https://avd.aquasec.com/misconfig/ksv-0020
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:12-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0021 (LOW): Container 'chat-api' of Deployment 'chat-api' should set 'securityContext.runAsGroup' > 10000
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Force the container to run with group ID > 10000 to avoid conflicts with the host’s user table.
+
+See https://avd.aquasec.com/misconfig/ksv-0021
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:12-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0030 (LOW): Either Pod or Container should set 'securityContext.seccompProfile.type' to 'RuntimeDefault'
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'Seccomp', the RuntimeDefault seccomp profile must be required, or allow specific additional profiles.
+
+See https://avd.aquasec.com/misconfig/ksv-0030
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:12-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0104 (MEDIUM): container "chat-api" of deployment "chat-api" in "default" namespace should specify a seccomp profile
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+A program inside the container can bypass Seccomp protection policies.
+
+See https://avd.aquasec.com/misconfig/ksv-0104
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:12-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0105 (LOW): securityContext.runAsUser should be set to a value greater than 0
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Containers should be forbidden from running with a root UID.
+
+See https://avd.aquasec.com/misconfig/ksv-0105
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:15-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  15 ┌           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0106 (LOW): container should drop all
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Containers must drop ALL capabilities, and are only permitted to add back the NET_BIND_SERVICE capability.
+
+See https://avd.aquasec.com/misconfig/ksv-0106
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:12-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 │             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  17 │             runAsUser: 0
+  18 │             # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+  19 │             allowPrivilegeEscalation: true
+  20 │             # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+  21 └             readOnlyRootFilesystem: false
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0110 (LOW): deployment chat-api in default namespace should set metadata.namespace to a non-default namespace
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Checks whether a workload is running in the default namespace.
+
+See https://avd.aquasec.com/misconfig/ksv-0110
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:4-5
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   4 ┌ metadata:
+   5 └   name: chat-api
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0118 (HIGH): deployment chat-api in default namespace is using the default security context, which allows root privileges
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Security context controls the allocation of security parameters for the pod/container/volume, ensuring the appropriate level of protection. Relying on default security context may expose vulnerabilities to potential attacks that rely on privileged access.
+
+See https://avd.aquasec.com/misconfig/ksv-0118
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ chat-api-deployment-patch.yaml:8-21
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   8 ┌     spec:
+   9 │       # VULN: mounts the ServiceAccount token into the pod, so anyone who gets code execution can steal it and use the ClusterRole.
+  10 │       automountServiceAccountToken: true
+  11 │       containers:
+  12 │         - name: chat-api
+  13 │           # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+  14 │           # securityContext: per-container Linux security settings.
+  15 │           securityContext:
+  16 └             # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+  ..   
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+ollama-deployment-patch.yaml (kubernetes)
+=========================================
+Tests: 115 (SUCCESSES: 98, FAILURES: 17)
+Failures: 17 (UNKNOWN: 0, LOW: 12, MEDIUM: 3, HIGH: 2, CRITICAL: 0)
+
+KSV-0001 (MEDIUM): Container 'ollama' of Deployment 'ollama' should set 'securityContext.allowPrivilegeEscalation' to false
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+A program inside the container can elevate its own privileges and run as root, which might give the program control over the container and node.
+
+See https://avd.aquasec.com/misconfig/ksv-0001
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:10-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0003 (LOW): Container 'ollama' of Deployment 'ollama' should add 'ALL' to 'securityContext.capabilities.drop'
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+The container should drop all default capabilities and add only those that are needed for its execution.
+
+See https://avd.aquasec.com/misconfig/ksv-0003
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:10-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0004 (LOW): Container 'ollama' of 'deployment' 'ollama' in 'default' namespace should set securityContext.capabilities.drop
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Security best practices require containers to run with minimal required capabilities.
+
+See https://avd.aquasec.com/misconfig/ksv-0004
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:10-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0011 (LOW): Container 'ollama' of Deployment 'ollama' should set 'resources.limits.cpu'
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Enforcing CPU limits prevents DoS via resource exhaustion.
+
+See https://avd.aquasec.com/misconfig/ksv-0011
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:10-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0012 (MEDIUM): Container 'ollama' of Deployment 'ollama' should set 'securityContext.runAsNonRoot' to true
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Force the running image to run as a non-root user to ensure least privileges.
+
+See https://avd.aquasec.com/misconfig/ksv-0012
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:10-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0014 (HIGH): Container 'ollama' of Deployment 'ollama' should set 'securityContext.readOnlyRootFilesystem' to true
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+An immutable root file system prevents applications from writing to their local disk. This can limit intrusions, as attackers will not be able to tamper with the file system or write foreign executables to disk.
+
+See https://avd.aquasec.com/misconfig/ksv-0014
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:10-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0015 (LOW): Container 'ollama' of Deployment 'ollama' should set 'resources.requests.cpu'
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+When containers have resource requests specified, the scheduler can make better decisions about which nodes to place pods on, and how to deal with resource contention.
+
+See https://avd.aquasec.com/misconfig/ksv-0015
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:10-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0016 (LOW): Container 'ollama' of Deployment 'ollama' should set 'resources.requests.memory'
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+When containers have memory requests specified, the scheduler can make better decisions about which nodes to place pods on, and how to deal with resource contention.
+
+See https://avd.aquasec.com/misconfig/ksv-0016
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:10-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0018 (LOW): Container 'ollama' of Deployment 'ollama' should set 'resources.limits.memory'
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Enforcing memory limits prevents DoS via resource exhaustion.
+
+See https://avd.aquasec.com/misconfig/ksv-0018
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:10-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0020 (LOW): Container 'ollama' of Deployment 'ollama' should set 'securityContext.runAsUser' > 10000
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Force the container to run with user ID > 10000 to avoid conflicts with the host’s user table.
+
+See https://avd.aquasec.com/misconfig/ksv-0020
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:10-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0021 (LOW): Container 'ollama' of Deployment 'ollama' should set 'securityContext.runAsGroup' > 10000
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Force the container to run with group ID > 10000 to avoid conflicts with the host’s user table.
+
+See https://avd.aquasec.com/misconfig/ksv-0021
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:10-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0030 (LOW): Either Pod or Container should set 'securityContext.seccompProfile.type' to 'RuntimeDefault'
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+According to pod security standard 'Seccomp', the RuntimeDefault seccomp profile must be required, or allow specific additional profiles.
+
+See https://avd.aquasec.com/misconfig/ksv-0030
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:10-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0104 (MEDIUM): container "ollama" of deployment "ollama" in "default" namespace should specify a seccomp profile
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+A program inside the container can bypass Seccomp protection policies.
+
+See https://avd.aquasec.com/misconfig/ksv-0104
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:10-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0105 (LOW): securityContext.runAsUser should be set to a value greater than 0
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Containers should be forbidden from running with a root UID.
+
+See https://avd.aquasec.com/misconfig/ksv-0105
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:12-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  12 ┌           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0106 (LOW): container should drop all
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Containers must drop ALL capabilities, and are only permitted to add back the NET_BIND_SERVICE capability.
+
+See https://avd.aquasec.com/misconfig/ksv-0106
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:10-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0110 (LOW): deployment ollama in default namespace should set metadata.namespace to a non-default namespace
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Checks whether a workload is running in the default namespace.
+
+See https://avd.aquasec.com/misconfig/ksv-0110
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:4-5
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   4 ┌ metadata:
+   5 └   name: ollama
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0118 (HIGH): deployment ollama in default namespace is using the default security context, which allows root privileges
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Security context controls the allocation of security parameters for the pod/container/volume, ensuring the appropriate level of protection. Relying on default security context may expose vulnerabilities to potential attacks that rely on privileged access.
+
+See https://avd.aquasec.com/misconfig/ksv-0118
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ollama-deployment-patch.yaml:8-14
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   8 ┌     spec:
+   9 │       containers:
+  10 │         - name: ollama
+  11 │           # VULN: no resources block, so a flood of long prompts can eat all node CPU/RAM (LLM denial of service).
+  12 │           securityContext:
+  13 │             # VULN: runs as root (UID 0), so a compromise of Ollama gives root inside the container.
+  14 └             runAsUser: 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+rbac.yaml (kubernetes)
+======================
+Tests: 117 (SUCCESSES: 115, FAILURES: 2)
+Failures: 2 (UNKNOWN: 0, LOW: 0, MEDIUM: 1, HIGH: 0, CRITICAL: 1)
+
+KSV-0041 (CRITICAL): ClusterRole 'chat-api-vuln' shouldn't have access to manage resource 'secrets'
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Viewing secrets at the cluster-scope is akin to cluster-admin in most clusters as there are typically at least one service accounts (their token stored in a secret) bound to cluster-admin directly or a role/clusterrole that gives similar permissions.
+
+See https://avd.aquasec.com/misconfig/ksv-0041
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ rbac.yaml:10-12
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  10 ┌   - apiGroups: [""]
+  11 │     resources: ["secrets"]
+  12 └     verbs: ["get", "list"]
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+KSV-0048 (MEDIUM): ClusterRole 'chat-api-vuln' should not have access to resources ["pods", "deployments", "jobs", "cronjobs", "statefulsets", "daemonsets", "replicasets", "replicationcontrollers"] for verbs ["create", "update", "patch", "delete", "deletecollection", "impersonate", "*"]
+════════════════════════════════════════════════════════════════════════════════════════════════════════════
+Depending on the policies enforced by the admission controller, this permission ranges from the ability to steal compute (crypto) by running workloads or allowing for creating workloads that escape to the node as root and escalation to cluster-admin.
+
+See https://avd.aquasec.com/misconfig/ksv-0048
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ rbac.yaml:14-16
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  14 ┌   - apiGroups: [""]
+  15 │     resources: ["pods"]
+  16 └     verbs: ["create"]
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+

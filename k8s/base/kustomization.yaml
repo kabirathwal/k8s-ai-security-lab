@@ -1,0 +1,26 @@
+# Base: the parts shared by every overlay. Deliberately neutral: no hardening and
+# no deliberate weaknesses. Overlays add those. Not applied directly.
+# Render with: kubectl kustomize k8s/base
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# No `namespace:` here. Each overlay sets its own (ai-lab-vuln, ai-lab-hardened).
+
+# resources: the manifest files that make up the app.
+resources:
+  - ollama-pvc.yaml
+  - ollama-deployment.yaml
+  - ollama-service.yaml
+  - ollama-pull-job.yaml
+  - chat-api-serviceaccount.yaml
+  - chat-api-configmap.yaml
+  - chat-api-deployment.yaml
+  - chat-api-service.yaml
+
+# labels: added to every object's metadata, so `kubectl get all -l app.kubernetes.io/part-of=...`
+# finds everything. includeSelectors: false leaves Deployment/Service selectors alone
+# (selectors can't be changed after creation).
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: k8s-ai-security-lab
+    includeSelectors: false

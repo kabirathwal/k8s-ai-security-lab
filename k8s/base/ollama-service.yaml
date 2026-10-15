@@ -1,0 +1,16 @@
+# Stable in-cluster name for Ollama: http://ollama:11434 (pod IPs change, this doesn't).
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+spec:
+  # ClusterIP: reachable only from inside the cluster.
+  type: ClusterIP
+  # Send traffic to pods with this label.
+  selector:
+    app: ollama
+  ports:
+    - name: http
+      # port: what clients connect to. targetPort: the container port (by name).
+      port: 11434
+      targetPort: http

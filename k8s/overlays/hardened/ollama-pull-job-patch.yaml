@@ -1,0 +1,49 @@
+# Patch for the base model-pull Job. The Job's pod must also satisfy PSA "restricted".
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-pull-model
+spec:
+  template:
+    metadata:
+      labels:
+        # Label the Job pod so a NetworkPolicy can allow its egress to the ollama Service.
+        app: ollama-pull
+    spec:
+      serviceAccountName: ollama
+      automountServiceAccountToken: false   # CONTROL: no API token in the Job pod (#1)
+      securityContext:
+        runAsNonRoot: true          # CONTROL: Job runs non-root (#7)
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault      # CONTROL: default syscall filter (#10)
+      containers:
+        - name: pull
+          env:
+            # The ollama CLI needs a writable HOME; base only sets OLLAMA_HOST.
+            - name: HOME
+              value: /home/ollama
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false   # CONTROL: no escalation (#9)
+            readOnlyRootFilesystem: true      # CONTROL: immutable root FS (#8)
+            capabilities:
+              drop: ["ALL"]                   # CONTROL: drop all capabilities (#11)
+          volumeMounts:
+            - name: home
+              mountPath: /home/ollama
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: home
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}

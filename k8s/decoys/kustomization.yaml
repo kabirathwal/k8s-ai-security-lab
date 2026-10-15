@@ -1,0 +1,20 @@
+# Decoys: bait for the attack demos, in their own namespace. Not a weakness of their own;
+# they give a stolen chat-api token something worth finding in ANOTHER namespace.
+# Kept separate from the vulnerable overlay because its `namespace: ai-lab-vuln` would pull
+# these into the app's namespace.
+# Apply with: kubectl apply -k k8s/decoys
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: ai-lab-decoy
+
+resources:
+  - namespace.yaml
+  - db-credentials-secret.yaml
+  - postgres-deployment.yaml
+  - postgres-service.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: k8s-ai-security-lab
+    includeSelectors: false

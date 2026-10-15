@@ -1,0 +1,32 @@
+# Stand-in "database": a tiny nginx pod, so connections to postgres:5432 get answered.
+# It speaks HTTP, not the Postgres protocol; it only proves the connection works.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: nginx
+          # Pinned nginx stable release (alpine = small image).
+          image: nginx:1.30.6-alpine
+          ports:
+            - name: http
+              containerPort: 80
+          # Small requests/limits so the decoy barely uses the cluster's shared memory.
+          # requests: what the scheduler reserves. limits: the hard cap.
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi

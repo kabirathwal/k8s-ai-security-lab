@@ -1,0 +1,22 @@
+# Patch for the base chat-api Deployment. Containers are matched by name.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-api
+spec:
+  template:
+    spec:
+      # VULN: mounts the ServiceAccount token into the pod, so anyone who gets code execution can steal it and use the ClusterRole.
+      automountServiceAccountToken: true
+      containers:
+        - name: chat-api
+          # VULN: no resources block, so the pod can use all of the node's CPU and memory.
+          # securityContext: per-container Linux security settings.
+          securityContext:
+            # VULN: runs as root (UID 0), overriding the image's non-root user 10001.
+            runAsUser: 0
+            # VULN: lets processes gain more privileges than their parent (e.g. via setuid binaries).
+            allowPrivilegeEscalation: true
+            # VULN: writable root filesystem, so an attacker can drop tools or modify the app's code.
+            readOnlyRootFilesystem: false
+            # VULN: no `capabilities: drop: ["ALL"]`, so the container keeps the runtime's default Linux capabilities.

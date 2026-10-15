@@ -1,0 +1,17 @@
+# Namespace for the hardened deployment.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-lab-hardened
+  labels:
+    # Pod Security Admission at the strictest level. "restricted" rejects pods that run as root,
+    # are privileged, mount hostPath, keep capabilities, or skip seccomp.
+    # CONTROL: admission-time guardrail; rejects the vulnerable overlay's pod specs (#15, backstops #7-#11).
+    pod-security.kubernetes.io/enforce: restricted
+    # Pin the policy version so a cluster upgrade can't silently change what "restricted" means.
+    pod-security.kubernetes.io/enforce-version: v1.37
+    # Also surface violations as warnings and audit annotations (defence in depth).
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: v1.37
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: v1.37

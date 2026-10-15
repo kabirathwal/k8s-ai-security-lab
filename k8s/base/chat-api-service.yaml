@@ -1,0 +1,14 @@
+# Stable in-cluster name for chat-api: http://chat-api (port 80).
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-api
+spec:
+  type: ClusterIP
+  selector:
+    app: chat-api
+  ports:
+    - name: http
+      # Clients use port 80; traffic goes to the container's port 8000.
+      port: 80
+      targetPort: http

@@ -1,0 +1,14 @@
+# Persistent storage for downloaded models, so they survive pod restarts.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-models
+spec:
+  # ReadWriteOnce: one node can mount it read-write at a time (all local-path supports).
+  accessModes:
+    - ReadWriteOnce
+  # No storageClassName: use the cluster default (`standard`, kind's local-path provisioner).
+  resources:
+    requests:
+      # qwen2.5:0.5b is ~400 MB. 5 Gi leaves room to try a bigger model.
+      storage: 5Gi
